@@ -14,30 +14,33 @@ function formatDt(dt: string) {
   }
 }
 
-function buildEmailText(event: Event, url: string): string {
+function buildEmailText(event: Event, url: string, companyName: string): string {
   const slotLines = event.slots
     .map((s) => `  ・${formatDt(s.datetime)}（${MEETING_TYPE_LABEL[s.meeting_type]}）`)
     .join('\n');
 
-  return `${event.host_name} です。
+  const sender = companyName
+    ? `${companyName}の${event.host_name}`
+    : event.host_name;
 
-日程調整のご協力をお願いします。
+  return `${sender}と申します。
 
-【件名】${event.title}${event.description ? `\n【内容】${event.description}` : ''}
+お打ち合わせの日程につきまして、ご都合のほどお伺いできればと存じます。
 
-下記の候補日からご都合のよい日時を1つお選びください。
-候補日がすべてご都合が悪い場合は、ご希望日時をいくつかご提案ください。
+下記の候補日時の中から、ご都合のよろしい日時を1つお選びいただけますでしょうか。
+もしいずれの日程もご都合が合わない場合は、ご対応可能な日時をいくつかお知らせいただけますと幸いです。
 
-▼ 回答フォーム
+▼ ご回答フォーム
 ${url}
 
 【候補日時】
 ${slotLines}
 
-よろしくお願いいたします。`;
+お手数をおかけいたしますが、何卒よろしくお願いいたします。`;
 }
 
 export default function Home() {
+  const [companyName, setCompanyName] = useState('');
   const [hostName, setHostName] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -45,6 +48,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState<Event | null>(null);
+  const [createdCompanyName, setCreatedCompanyName] = useState('');
   const [copied, setCopied] = useState<'url' | 'mail' | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -65,6 +69,7 @@ export default function Home() {
         host_name: hostName.trim(),
         slots: filled,
       });
+      setCreatedCompanyName(companyName.trim());
       setCreated(event);
     } catch (err) {
       setError((err as Error).message);
@@ -83,7 +88,7 @@ export default function Home() {
   if (created) {
     const eventUrl = `${window.location.origin}/event/${created.id}`;
     const responsesUrl = `${window.location.origin}/event/${created.id}/responses`;
-    const emailText = buildEmailText(created, eventUrl);
+    const emailText = buildEmailText(created, eventUrl, createdCompanyName);
 
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -137,6 +142,7 @@ export default function Home() {
                   setCreated(null);
                   setTitle('');
                   setDescription('');
+                  setCompanyName('');
                   setHostName('');
                   setSlots([{ datetime: '', meeting_type: 'face' }]);
                 }}
@@ -160,18 +166,32 @@ export default function Home() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              あなたのお名前 <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={hostName}
-              onChange={(e) => setHostName(e.target.value)}
-              placeholder="例: 山田 花子"
-              required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                会社名（任意）
+              </label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="例: 株式会社〇〇"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                お名前 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={hostName}
+                onChange={(e) => setHostName(e.target.value)}
+                placeholder="例: 山田 花子"
+                required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           <div>
