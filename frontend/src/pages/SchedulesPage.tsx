@@ -13,19 +13,28 @@ function formatDt(dt: string) {
   }
 }
 
-function buildGoogleCalendarUrl(title: string, datetime: string, hostName: string): string {
+function buildGoogleCalendarUrl(
+  title: string,
+  datetime: string,
+  hostName: string,
+  meetingUrl?: string | null
+): string {
   const start = new Date(datetime);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, '0');
   const fmt = (d: Date) =>
     `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
-  const params = new URLSearchParams({
+  const details = meetingUrl
+    ? `担当: ${hostName}\nミーティングURL: ${meetingUrl}`
+    : `担当: ${hostName}`;
+  const params: Record<string, string> = {
     action: 'TEMPLATE',
     text: title,
     dates: `${fmt(start)}/${fmt(end)}`,
-    details: `担当: ${hostName}`,
-  });
-  return `https://calendar.google.com/calendar/render?${params}`;
+    details,
+  };
+  if (meetingUrl) params.location = meetingUrl;
+  return `https://calendar.google.com/calendar/render?${new URLSearchParams(params)}`;
 }
 
 function StatusBadge({ type }: { type: 'selected' | 'proposed' | null }) {
@@ -140,7 +149,7 @@ export default function SchedulesPage() {
               {ev.response_type === 'selected' && ev.selected_datetime && (
                 <div className="mt-3">
                   <a
-                    href={buildGoogleCalendarUrl(ev.title, ev.selected_datetime, ev.host_name)}
+                    href={buildGoogleCalendarUrl(ev.title, ev.selected_datetime, ev.host_name, ev.meeting_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg transition-colors"
