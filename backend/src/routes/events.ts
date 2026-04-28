@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { createEvent, getEvent, getResponses } from '../db/queries';
+import { createEvent, getEvent, getResponses, getAllEventsWithSummary } from '../db/queries';
 import type { MeetingType } from '../db/queries';
 
 const router = Router();
+
+router.get('/', (_req: Request, res: Response) => {
+  return res.json(getAllEventsWithSummary());
+});
 
 router.post('/', (req: Request, res: Response) => {
   const { title, description, host_name, slots } = req.body as {

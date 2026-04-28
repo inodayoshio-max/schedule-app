@@ -160,7 +160,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">日程調整を作成</h1>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-bold text-gray-900">日程調整を作成</h1>
+          <Link to="/schedules" className="text-sm text-blue-600 hover:underline">
+            一覧を見る →
+          </Link>
+        </div>
         <p className="text-sm text-gray-500 mb-6">
           候補日を設定してお客様に共有するURLとメール文を発行します
         </p>

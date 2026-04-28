@@ -124,6 +124,38 @@ export function createResponse(
   })();
 }
 
+export interface EventSummary {
+  id: string;
+  title: string;
+  host_name: string;
+  created_at: string;
+  customer_name: string | null;
+  response_type: 'selected' | 'proposed' | null;
+  selected_datetime: string | null;
+  selected_meeting_type: MeetingType | null;
+  meeting_format: MeetingFormat | null;
+  meeting_url: string | null;
+}
+
+export function getAllEventsWithSummary(): EventSummary[] {
+  const db = getDb();
+  return db
+    .prepare(
+      `SELECT
+         e.id, e.title, e.host_name, e.created_at,
+         r.customer_name, r.response_type, r.meeting_format, r.meeting_url,
+         s.datetime  AS selected_datetime,
+         s.meeting_type AS selected_meeting_type
+       FROM events e
+       LEFT JOIN responses r ON r.id = (
+         SELECT id FROM responses WHERE event_id = e.id ORDER BY created_at DESC LIMIT 1
+       )
+       LEFT JOIN slots s ON s.id = r.selected_slot_id
+       ORDER BY e.created_at DESC`
+    )
+    .all() as EventSummary[];
+}
+
 export function getResponses(eventId: string): Response[] {
   const db = getDb();
 

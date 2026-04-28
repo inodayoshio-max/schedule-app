@@ -53,6 +53,19 @@ export interface EventResponses {
   responses: CustomerResponse[];
 }
 
+export interface EventSummary {
+  id: string;
+  title: string;
+  host_name: string;
+  created_at: string;
+  customer_name: string | null;
+  response_type: 'selected' | 'proposed' | null;
+  selected_datetime: string | null;
+  selected_meeting_type: MeetingType | null;
+  meeting_format: MeetingFormat | null;
+  meeting_url: string | null;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
@@ -72,6 +85,10 @@ export function createEvent(data: {
   slots: SlotInput[];
 }): Promise<Event> {
   return request<Event>('/api/events', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function getAllEvents(): Promise<EventSummary[]> {
+  return request<EventSummary[]>('/api/events');
 }
 
 export function getEvent(id: string): Promise<Event> {
