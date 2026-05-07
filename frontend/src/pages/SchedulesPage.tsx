@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { getAllEvents, MEETING_FORMAT_LABEL } from '../api/client';
+import { getAllEvents, deleteEvent, MEETING_FORMAT_LABEL } from '../api/client';
 import type { EventSummary, MeetingFormat } from '../api/client';
 
 function formatDt(dt: string) {
@@ -59,10 +59,56 @@ function StatusBadge({ type }: { type: 'selected' | 'proposed' | null }) {
   );
 }
 
+// 削除確認モーダル
+function DeleteModal({
+  title,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  title: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-2">日程調整を削除</h3>
+        <p className="text-sm text-gray-600 mb-1">
+          以下の日程調整を削除しますか？
+        </p>
+        <p className="text-sm font-medium text-gray-800 bg-gray-50 rounded-lg px-3 py-2 mb-5">
+          {title}
+        </p>
+        <p className="text-xs text-red-500 mb-5">削除すると元に戻せません。</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+          >
+            {loading ? '削除中...' : '削除する'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SchedulesPage() {
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<EventSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     getAllEvents()
@@ -70,6 +116,20 @@ export default function SchedulesPage() {
       .catch((err) => setError((err as Error).message))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteEvent(deleteTarget.id);
+      setEvents((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -89,7 +149,7 @@ export default function SchedulesPage() {
 
         {loading && <p className="text-center text-gray-400 py-12">読み込み中...</p>}
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">{error}</p>
         )}
 
         {!loading && !error && events.length === 0 && (
@@ -115,12 +175,23 @@ export default function SchedulesPage() {
                   </div>
                   <p className="text-sm text-gray-500 mt-0.5">担当: {ev.host_name}</p>
                 </div>
-                <Link
-                  to={`/event/${ev.id}/responses`}
-                  className="text-xs text-blue-600 hover:underline whitespace-nowrap shrink-0"
-                >
-                  回答状況 →
-                </Link>
+                <div className="flex items-center gap-3 shrink-0">
+                  <Link
+                    to={`/event/${ev.id}/responses`}
+                    className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+                  >
+                    回答状況 →
+                  </Link>
+                  <button
+                    onClick={() => setDeleteTarget(ev)}
+                    className="text-gray-300 hover:text-red-500 transition-colors"
+                    title="削除"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {ev.customer_name && (
@@ -165,6 +236,15 @@ export default function SchedulesPage() {
           ))}
         </div>
       </div>
+
+      {deleteTarget && (
+        <DeleteModal
+          title={deleteTarget.title}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
+      )}
     </div>
   );
 }

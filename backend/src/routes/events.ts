@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { createEvent, getEvent, getResponses, getAllEventsWithSummary } from '../db/queries';
+import { createEvent, getEvent, getResponses, getAllEventsWithSummary, deleteEvent } from '../db/queries';
 import type { MeetingType } from '../db/queries';
 
 const router = Router();
@@ -40,6 +40,12 @@ router.get('/:id', (req: Request, res: Response) => {
   const event = getEvent(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
   return res.json(event);
+});
+
+router.delete('/:id', (req: Request, res: Response) => {
+  const deleted = deleteEvent(req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Event not found' });
+  return res.json({ ok: true });
 });
 
 router.get('/:id/responses', (req: Request, res: Response) => {

@@ -91,6 +91,10 @@ export function getAllEvents(): Promise<EventSummary[]> {
   return request<EventSummary[]>('/api/events');
 }
 
+export function deleteEvent(id: string): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/api/events/${id}`, { method: 'DELETE' });
+}
+
 export function getEvent(id: string): Promise<Event> {
   return request<Event>(`/api/events/${id}`);
 }

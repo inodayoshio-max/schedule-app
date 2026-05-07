@@ -137,6 +137,12 @@ export interface EventSummary {
   meeting_url: string | null;
 }
 
+export function deleteEvent(id: string): boolean {
+  const db = getDb();
+  const result = db.prepare('DELETE FROM events WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
 export function getAllEventsWithSummary(): EventSummary[] {
   const db = getDb();
   return db
