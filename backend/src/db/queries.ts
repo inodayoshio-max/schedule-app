@@ -9,6 +9,7 @@ export interface Slot {
   event_id: string;
   datetime: string;
   meeting_type: MeetingType;
+  meeting_url: string | null;
 }
 
 export interface Event {
@@ -39,7 +40,7 @@ export function createEvent(
   title: string,
   description: string | null,
   host_name: string,
-  slots: { datetime: string; meeting_type: MeetingType }[]
+  slots: { datetime: string; meeting_type: MeetingType; meeting_url?: string | null }[]
 ): Event {
   const db = getDb();
   const eventId = nanoid();
@@ -48,7 +49,7 @@ export function createEvent(
     'INSERT INTO events (id, title, description, host_name) VALUES (?, ?, ?, ?)'
   );
   const insertSlot = db.prepare(
-    'INSERT INTO slots (id, event_id, datetime, meeting_type) VALUES (?, ?, ?, ?)'
+    'INSERT INTO slots (id, event_id, datetime, meeting_type, meeting_url) VALUES (?, ?, ?, ?, ?)'
   );
 
   const createdSlots: Slot[] = slots.map((s) => ({
@@ -56,12 +57,13 @@ export function createEvent(
     event_id: eventId,
     datetime: s.datetime,
     meeting_type: s.meeting_type,
+    meeting_url: s.meeting_url ?? null,
   }));
 
   db.transaction(() => {
     insertEvent.run(eventId, title, description, host_name);
     for (const slot of createdSlots) {
-      insertSlot.run(slot.id, slot.event_id, slot.datetime, slot.meeting_type);
+      insertSlot.run(slot.id, slot.event_id, slot.datetime, slot.meeting_type, slot.meeting_url);
     }
   })();
 
@@ -86,7 +88,7 @@ export function getEvent(id: string): Event | null {
 
   const slots = db
     .prepare(
-      'SELECT id, event_id, datetime, meeting_type FROM slots WHERE event_id = ? ORDER BY datetime'
+      'SELECT id, event_id, datetime, meeting_type, meeting_url FROM slots WHERE event_id = ? ORDER BY datetime'
     )
     .all(id) as Slot[];
 

@@ -25,6 +25,8 @@ router.post('/', (req: Request, res: Response) => {
   for (const s of slots) {
     if (!s.datetime || !validTypes.has(s.meeting_type))
       return res.status(400).json({ error: 'Invalid slot entry' });
+    if (s.meeting_url && typeof s.meeting_url !== 'string')
+      return res.status(400).json({ error: 'Invalid meeting_url' });
   }
 
   try {

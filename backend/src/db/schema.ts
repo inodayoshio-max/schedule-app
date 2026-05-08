@@ -30,7 +30,8 @@ function initDb(db: Database.Database): void {
       event_id     TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
       datetime     TEXT NOT NULL,
       meeting_type TEXT NOT NULL DEFAULT 'face'
-        CHECK(meeting_type IN ('face', 'online', 'either'))
+        CHECK(meeting_type IN ('face', 'online', 'either')),
+      meeting_url  TEXT
     );
 
     CREATE TABLE IF NOT EXISTS responses (
@@ -51,4 +52,11 @@ function initDb(db: Database.Database): void {
       datetime    TEXT NOT NULL
     );
   `);
+
+  // マイグレーション: slots.meeting_url カラムが存在しない場合に追加
+  try {
+    db.exec(`ALTER TABLE slots ADD COLUMN meeting_url TEXT`);
+  } catch {
+    // 既にカラムが存在する場合は無視
+  }
 }

@@ -15,6 +15,7 @@ export const MEETING_FORMAT_LABEL: Record<MeetingFormat, string> = {
 export interface SlotInput {
   datetime: string;
   meeting_type: MeetingType;
+  meeting_url?: string;
 }
 
 export interface Slot {
@@ -22,6 +23,7 @@ export interface Slot {
   event_id: string;
   datetime: string;
   meeting_type: MeetingType;
+  meeting_url: string | null;
 }
 
 export interface Event {
