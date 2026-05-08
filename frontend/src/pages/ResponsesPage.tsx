@@ -13,12 +13,42 @@ function formatDt(dt: string) {
   }
 }
 
-function MeetingUrlSection({ response }: { response: CustomerResponse }) {
+function buildReplyEmail(
+  hostName: string,
+  customerName: string,
+  datetime: string,
+  meetingUrl: string
+): string {
+  return `${customerName} 様
+
+お世話になっております。
+${hostName}です。
+
+この度は日程のご回答をいただきありがとうございます。
+下記の通りオンラインミーティングのURLをお送りいたします。
+
+【日時】${formatDt(datetime)}
+【ミーティングURL】${meetingUrl}
+
+当日はURLをクリックしてご参加ください。
+何かご不明な点がございましたら、お気軽にご連絡ください。
+
+よろしくお願いいたします。`;
+}
+
+function MeetingUrlSection({
+  response,
+  hostName,
+}: {
+  response: CustomerResponse;
+  hostName: string;
+}) {
   const [url, setUrl] = useState(response.meeting_url ?? '');
   const [saved, setSaved] = useState(!!response.meeting_url);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedMail, setCopiedMail] = useState(false);
 
   async function handleSave() {
     if (!url.trim()) { setError('URLを入力してください'); return; }
@@ -39,12 +69,29 @@ function MeetingUrlSection({ response }: { response: CustomerResponse }) {
     setSaved(false);
   }
 
-  function handleCopy() {
+  function handleCopyUrl() {
     navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
     });
   }
+
+  function handleCopyMail() {
+    const text = buildReplyEmail(
+      hostName,
+      response.customer_name,
+      response.selected_datetime ?? '',
+      url
+    );
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMail(true);
+      setTimeout(() => setCopiedMail(false), 2000);
+    });
+  }
+
+  const emailText = saved && url && response.selected_datetime
+    ? buildReplyEmail(hostName, response.customer_name, response.selected_datetime, url)
+    : '';
 
   return (
     <div className="mt-3 bg-white border border-green-200 rounded-lg p-3 space-y-2">
@@ -52,21 +99,23 @@ function MeetingUrlSection({ response }: { response: CustomerResponse }) {
 
       {saved && url ? (
         // URL確定済み
-        <div className="space-y-2">
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:underline break-all block"
-          >
-            {url}
-          </a>
-          <div className="flex gap-2">
-            <button
-              onClick={handleCopy}
-              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:underline break-all"
             >
-              {copied ? 'コピー済！' : 'URLをコピー'}
+              {url}
+            </a>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handleCopyUrl}
+              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {copiedUrl ? 'コピー済！' : 'URLをコピー'}
             </button>
             <button
               onClick={() => setSaved(false)}
@@ -75,6 +124,25 @@ function MeetingUrlSection({ response }: { response: CustomerResponse }) {
               変更
             </button>
           </div>
+
+          {/* メール返信文 */}
+          {emailText && (
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <p className="text-xs font-semibold text-gray-500">📧 メール返信文</p>
+              <textarea
+                readOnly
+                value={emailText}
+                rows={11}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 bg-gray-50 resize-none"
+              />
+              <button
+                onClick={handleCopyMail}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 rounded-lg transition-colors"
+              >
+                {copiedMail ? 'コピー済！' : 'メール文をコピー'}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         // URL未設定 or 編集中
@@ -102,16 +170,13 @@ function MeetingUrlSection({ response }: { response: CustomerResponse }) {
             </button>
           </div>
           {error && <p className="text-xs text-red-500">{error}</p>}
-          <p className="text-xs text-gray-400">
-            URLを保存後、コピーしてお客様へメールでお送りください
-          </p>
         </div>
       )}
     </div>
   );
 }
 
-function ResponseCard({ response }: { response: CustomerResponse }) {
+function ResponseCard({ response, hostName }: { response: CustomerResponse; hostName: string }) {
   const isSelected = response.response_type === 'selected';
   const isOnline = response.meeting_format === 'online';
 
@@ -142,7 +207,7 @@ function ResponseCard({ response }: { response: CustomerResponse }) {
                 形式：{MEETING_FORMAT_LABEL[response.meeting_format]}
               </p>
             )}
-            {isOnline && <MeetingUrlSection response={response} />}
+            {isOnline && <MeetingUrlSection response={response} hostName={hostName} />}
           </>
         ) : (
           <>
@@ -225,7 +290,7 @@ export default function ResponsesPage() {
           ) : (
             <div className="space-y-3">
               {responses.map((r) => (
-                <ResponseCard key={r.id} response={r} />
+                <ResponseCard key={r.id} response={r} hostName={event.host_name} />
               ))}
             </div>
           )}
