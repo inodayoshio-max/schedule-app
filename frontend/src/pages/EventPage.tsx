@@ -45,6 +45,10 @@ export default function EventPage() {
   const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // オンライン会議ツール選択
+  const [meetingTool, setMeetingTool] = useState<'jitsi' | 'zoom'>('jitsi');
+  const [zoomUrl, setZoomUrl] = useState('');
+
   useEffect(() => {
     if (!id) return;
     getEvent(id)
@@ -71,6 +75,14 @@ export default function EventPage() {
     return slot.meeting_type as MeetingFormat;
   }
 
+  // 選択中のスロットがオンラインかどうか
+  function isOnline(slot: Slot | null): boolean {
+    if (!slot) return false;
+    if (slot.meeting_type === 'online') return true;
+    if (slot.meeting_type === 'either' && chosenFormat === 'online') return true;
+    return false;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!event || !id) return;
@@ -87,7 +99,18 @@ export default function EventPage() {
         return;
       }
       const format = resolveFormat(selectedSlot);
-      const url = format === 'online' ? generateMeetingUrl() : '';
+      let url = '';
+      if (format === 'online') {
+        if (meetingTool === 'zoom') {
+          if (!zoomUrl.trim()) {
+            setSubmitError('Zoom URLを入力してください。');
+            return;
+          }
+          url = zoomUrl.trim();
+        } else {
+          url = generateMeetingUrl();
+        }
+      }
 
       setLoading(true);
       try {
@@ -173,9 +196,11 @@ export default function EventPage() {
                   >
                     {confirmedUrl}
                   </a>
-                  <p className="text-xs text-gray-400 mt-1">
-                    ※ Jitsi Meet（無料・ブラウザのみで利用可）
-                  </p>
+                  {meetingTool === 'jitsi' && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      ※ Jitsi Meet（無料・ブラウザのみで利用可）
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -283,6 +308,52 @@ export default function EventPage() {
                   );
                 })}
               </div>
+              {/* オンライン確定時：ミーティングツール選択 */}
+              {isOnline(selectedSlot) && (
+                <div className="mt-4 border border-gray-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-medium text-gray-700">オンライン会議ツール</p>
+                  <div className="flex flex-col gap-2">
+                    <label className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors ${meetingTool === 'jitsi' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input
+                        type="radio"
+                        name="meetingTool"
+                        value="jitsi"
+                        checked={meetingTool === 'jitsi'}
+                        onChange={() => setMeetingTool('jitsi')}
+                        className="accent-blue-600"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">Jitsi Meet（URLを自動発行）</p>
+                        <p className="text-xs text-gray-400">無料・アカウント不要・ブラウザで利用可</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-colors ${meetingTool === 'zoom' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                      <input
+                        type="radio"
+                        name="meetingTool"
+                        value="zoom"
+                        checked={meetingTool === 'zoom'}
+                        onChange={() => setMeetingTool('zoom')}
+                        className="accent-blue-600"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">Zoom（URLを入力）</p>
+                        <p className="text-xs text-gray-400">ZoomのミーティングURLを貼り付けてください</p>
+                      </div>
+                    </label>
+                  </div>
+                  {meetingTool === 'zoom' && (
+                    <input
+                      type="url"
+                      value={zoomUrl}
+                      onChange={(e) => setZoomUrl(e.target.value)}
+                      placeholder="https://zoom.us/j/..."
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={() => setMode('proposing')}
