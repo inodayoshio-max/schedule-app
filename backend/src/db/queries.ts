@@ -95,6 +95,14 @@ export function getEvent(id: string): Event | null {
   return { ...event, slots };
 }
 
+export function updateResponseMeetingUrl(responseId: string, meetingUrl: string): boolean {
+  const db = getDb();
+  const result = db
+    .prepare('UPDATE responses SET meeting_url = ? WHERE id = ?')
+    .run(meetingUrl, responseId);
+  return result.changes > 0;
+}
+
 export function createResponse(
   eventId: string,
   customerName: string,

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { getEventResponses, MEETING_FORMAT_LABEL, MEETING_TYPE_LABEL } from '../api/client';
+import { getEventResponses, updateMeetingUrl, generateMeetingUrl, MEETING_FORMAT_LABEL, MEETING_TYPE_LABEL } from '../api/client';
 import type { EventResponses, CustomerResponse } from '../api/client';
 
 function formatDt(dt: string) {
@@ -11,6 +11,104 @@ function formatDt(dt: string) {
   } catch {
     return dt;
   }
+}
+
+function MeetingUrlSection({ response }: { response: CustomerResponse }) {
+  const [url, setUrl] = useState(response.meeting_url ?? '');
+  const [saved, setSaved] = useState(!!response.meeting_url);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  async function handleSave() {
+    if (!url.trim()) { setError('URLを入力してください'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await updateMeetingUrl(response.id, url.trim());
+      setSaved(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleJitsi() {
+    setUrl(generateMeetingUrl());
+    setSaved(false);
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="mt-3 bg-white border border-green-200 rounded-lg p-3 space-y-2">
+      <p className="text-xs text-green-700 font-semibold">📹 オンライン会議URL</p>
+
+      {saved && url ? (
+        // URL確定済み
+        <div className="space-y-2">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:underline break-all block"
+          >
+            {url}
+          </a>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCopy}
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {copied ? 'コピー済！' : 'URLをコピー'}
+            </button>
+            <button
+              onClick={() => setSaved(false)}
+              className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5"
+            >
+              変更
+            </button>
+          </div>
+        </div>
+      ) : (
+        // URL未設定 or 編集中
+        <div className="space-y-2">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); setError(''); }}
+            placeholder="https://zoom.us/j/..."
+            className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <div className="flex gap-2 items-center flex-wrap">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors"
+            >
+              {saving ? '保存中...' : '保存'}
+            </button>
+            <button
+              onClick={handleJitsi}
+              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Jitsi Meetを自動発行
+            </button>
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <p className="text-xs text-gray-400">
+            URLを保存後、コピーしてお客様へメールでお送りください
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ResponseCard({ response }: { response: CustomerResponse }) {
@@ -44,19 +142,7 @@ function ResponseCard({ response }: { response: CustomerResponse }) {
                 形式：{MEETING_FORMAT_LABEL[response.meeting_format]}
               </p>
             )}
-            {isOnline && response.meeting_url && (
-              <div className="mt-2 bg-white border border-green-200 rounded-lg px-3 py-2">
-                <p className="text-xs text-green-600 font-semibold mb-0.5">📹 オンライン会議URL</p>
-                <a
-                  href={response.meeting_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:underline break-all"
-                >
-                  {response.meeting_url}
-                </a>
-              </div>
-            )}
+            {isOnline && <MeetingUrlSection response={response} />}
           </>
         ) : (
           <>

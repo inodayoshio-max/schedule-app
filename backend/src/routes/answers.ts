@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { createResponse } from '../db/queries';
+import { createResponse, updateResponseMeetingUrl } from '../db/queries';
 import type { MeetingFormat } from '../db/queries';
 
 const router = Router();
@@ -50,6 +50,14 @@ router.post('/', (req: Request, res: Response) => {
     console.error(err);
     return res.status(500).json({ error: 'Failed to save response' });
   }
+});
+
+router.patch('/:id/meeting-url', (req: Request, res: Response) => {
+  const { meetingUrl } = req.body as { meetingUrl?: string };
+  if (!meetingUrl?.trim()) return res.status(400).json({ error: 'meetingUrl is required' });
+  const updated = updateResponseMeetingUrl(req.params.id, meetingUrl.trim());
+  if (!updated) return res.status(404).json({ error: 'Response not found' });
+  return res.json({ ok: true });
 });
 
 export default router;

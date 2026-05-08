@@ -118,6 +118,16 @@ export function submitResponse(data: {
   return request<{ ok: boolean }>('/api/answers', { method: 'POST', body: JSON.stringify(data) });
 }
 
+export function updateMeetingUrl(
+  responseId: string,
+  meetingUrl: string
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>(`/api/answers/${responseId}/meeting-url`, {
+    method: 'PATCH',
+    body: JSON.stringify({ meetingUrl }),
+  });
+}
+
 /** オンラインMTG用のJitsi Meetルーム URLを生成 */
 export function generateMeetingUrl(): string {
   const id = Math.random().toString(36).slice(2, 10);

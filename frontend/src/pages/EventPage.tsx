@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { getEvent, submitResponse, generateMeetingUrl, MEETING_TYPE_LABEL, MEETING_FORMAT_LABEL } from '../api/client';
+import { getEvent, submitResponse, MEETING_TYPE_LABEL, MEETING_FORMAT_LABEL } from '../api/client';
 import type { Event, Slot, MeetingFormat } from '../api/client';
 
 function formatDt(dt: string) {
@@ -41,7 +41,6 @@ export default function EventPage() {
 
   const [proposedDates, setProposedDates] = useState(['', '']);
   const [mode, setMode] = useState<Mode>('selecting');
-  const [confirmedUrl, setConfirmedUrl] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -87,10 +86,8 @@ export default function EventPage() {
         return;
       }
       const format = resolveFormat(selectedSlot);
-      // スロットにZoom URLが設定されていればそれを使用、なければJitsiを自動発行
-      const url = format === 'online'
-        ? (selectedSlot.meeting_url?.trim() || generateMeetingUrl())
-        : '';
+      // URLはホストが後から設定するため、ここでは生成しない
+      const url = '';
 
       setLoading(true);
       try {
@@ -103,7 +100,6 @@ export default function EventPage() {
           meetingFormat: format,
           meetingUrl: url || undefined,
         });
-        setConfirmedUrl(url);
         setMode('done');
       } catch (err) {
         setSubmitError((err as Error).message);
@@ -151,7 +147,7 @@ export default function EventPage() {
 
   // 完了画面
   if (mode === 'done') {
-    const isOnline = !!confirmedUrl;
+    const isOnline = selectedSlot && resolveFormat(selectedSlot) === 'online';
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-md p-8 text-center">
@@ -166,21 +162,11 @@ export default function EventPage() {
                 形式：{MEETING_FORMAT_LABEL[resolveFormat(selectedSlot)]}
               </p>
               {isOnline && (
-                <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="text-xs text-green-600 font-semibold mb-1">📹 オンライン会議URL</p>
-                  <a
-                    href={confirmedUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline break-all"
-                  >
-                    {confirmedUrl}
-                  </a>
-                  {confirmedUrl.includes('meet.jit.si') && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      ※ Jitsi Meet（無料・ブラウザのみで利用可）
-                    </p>
-                  )}
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-600 font-semibold mb-1">📹 オンライン会議について</p>
+                  <p className="text-sm text-gray-600">
+                    ミーティングURLは {event.host_name} より改めてご連絡いたします。
+                  </p>
                 </div>
               )}
             </div>
