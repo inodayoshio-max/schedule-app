@@ -269,8 +269,8 @@ export default function ResponsesPage() {
                 <p className="text-sm text-gray-500 mt-0.5">{event.description}</p>
               )}
             </div>
-            <Link to={`/event/${id}`} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
-              回答フォーム
+            <Link to="/schedules" className="text-xs text-blue-600 hover:underline whitespace-nowrap">
+              一覧に戻る →
             </Link>
           </div>
 
