@@ -13,7 +13,7 @@ router.post('/', (req: Request, res: Response) => {
     title?: string;
     description?: string;
     host_name?: string;
-    slots?: { datetime: string; meeting_type: MeetingType }[];
+    slots?: { datetime: string; meeting_type: MeetingType; meeting_url?: string }[];
   };
 
   if (!title?.trim()) return res.status(400).json({ error: 'title is required' });
